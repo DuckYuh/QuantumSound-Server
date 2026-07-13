@@ -11,3 +11,249 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+  DELETED
+}
+
+enum TrackStatus {
+  PROCESSING
+  READY
+  BLOCKED
+  DELETED
+}
+
+enum AlbumType {
+  ALBUM
+  EP
+  SINGLE
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+  UNLISTED
+}
+
+model User {
+  id          String     @id @default(uuid())
+  username    String     @unique
+  displayName String
+  email       String     @unique
+  password    String
+  bio         String?
+  country     String?
+  role        UserRole   @default(USER)
+  status      UserStatus @default(ACTIVE)
+
+  likes     TrackLike[]
+  comments  Comment[]
+  histories ListeningHistory[]
+  searches  SearchHistory[]
+  reports   Report[]
+
+  tracks    Track[]
+  playlists Playlist[]
+  followers Follow[]   @relation("UserFollowers")
+  following Follow[]   @relation("UserFollowing")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  albums    Album[]
+}
+
+model Track {
+  id          String      @id @default(uuid())
+  title       String
+  description String?
+  slug        String
+  audioUrl    String
+  waveformUrl String
+  coverImage  String?
+  playCount   Int         @default(0)
+  likeCount   Int         @default(0)
+  visibility  Visibility
+  status      TrackStatus @default(PROCESSING)
+
+  comments  Comment[]
+  likes     TrackLike[]
+  genres    TrackGenre[]
+  tags      TrackTag[]
+  histories ListeningHistory[]
+  reports   Report[]
+  playlists PlaylistTrack[]
+
+  artist   User   @relation(fields: [artistId], references: [id])
+  artistId String
+
+  album   Album  @relation(fields: [albumId], references: [id])
+  albumId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Album {
+  id          String    @id @default(uuid())
+  title       String
+  type        AlbumType @default(SINGLE)
+  description String?
+  coverImage  String?
+  tracks      Track[]
+
+  artist   User   @relation(fields: [artistId], references: [id])
+  artistId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Playlist {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  coverImage  String?
+  visibility  Visibility
+  trackCount  Int        @default(0)
+  saveCount   Int        @default(0)
+
+  tracks PlaylistTrack[]
+
+  owner   User   @relation(fields: [ownerId], references: [id])
+  ownerId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Follow {
+  id String @id @default(uuid())
+
+  follower    User   @relation("UserFollowers", fields: [followerId], references: [id])
+  followerId  String
+  following   User   @relation("UserFollowing", fields: [followingId], references: [id])
+  followingId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([followerId, followingId])
+}
+
+model Genre {
+  id          String       @id @default(uuid())
+  name        String
+  slug        String
+  trackGenres TrackGenre[]
+}
+
+model TrackGenre {
+  id String @id @default(uuid())
+
+  track   Track  @relation(fields: [trackId], references: [id])
+  trackId String
+
+  genre   Genre  @relation(fields: [genreId], references: [id])
+  genreId String
+
+  @@unique([trackId, genreId])
+}
+
+model Tag {
+  id        String     @id @default(uuid())
+  name      String
+  trackTags TrackTag[]
+}
+
+model TrackTag {
+  id String @id @default(uuid())
+
+  track   Track  @relation(fields: [trackId], references: [id])
+  trackId String
+
+  tag   Tag    @relation(fields: [tagId], references: [id])
+  tagId String
+
+  @@unique([trackId, tagId])
+}
+
+model PlaylistTrack {
+  id String @id @default(uuid())
+
+  track   Track  @relation(fields: [trackId], references: [id])
+  trackId String
+
+  playlist   Playlist @relation(fields: [playlistId], references: [id])
+  playlistId String
+
+  @@unique([playlistId, trackId])
+}
+
+model TrackLike {
+  id String @id @default(uuid())
+
+  track   Track  @relation(fields: [trackId], references: [id])
+  trackId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, trackId])
+}
+
+model Comment {
+  id      String @id @default(uuid())
+  content String
+
+  track   Track  @relation(fields: [trackId], references: [id])
+  trackId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ListeningHistory {
+  id String @id @default(uuid())
+
+  track   Track  @relation(fields: [trackId], references: [id])
+  trackId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  playedAt DateTime @default(now())
+}
+
+model SearchHistory {
+  id      String @id @default(uuid())
+  keyword String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  createdAt DateTime @default(now())
+}
+
+model Report {
+  id     String @id @default(uuid())
+  reason String
+
+  track   Track  @relation(fields: [trackId], references: [id])
+  trackId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  createdAt DateTime @default(now())
+}
