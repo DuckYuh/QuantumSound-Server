@@ -65,4 +65,9 @@ export class AuthService {
       access_token: token,
     };
   }
+
+  async me(access_token: string) {
+    const payload = this.jwt.verify(access_token);
+    return this.usersService.findByEmail(payload.email);
+  }
 }
