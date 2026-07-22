@@ -1,6 +1,6 @@
 import { UsersService } from '@/users/users.service';
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt/dist/jwt.service';
+import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import bcrypt from 'bcrypt';
@@ -36,6 +36,13 @@ export class AuthService {
 
     return {
       access_token: token,
+      user: {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        email: user.email,
+        role: user.role,
+      },
     };
   }
 
@@ -63,6 +70,13 @@ export class AuthService {
 
     return {
       access_token: token,
+      user: {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        email: user.email,
+        role: user.role,
+      },
     };
   }
 
