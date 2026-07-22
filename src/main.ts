@@ -14,7 +14,7 @@ async function bootstrap() {
     }),
   );
   app.enableCors({
-    origin: ['http://localhost:3000','quantum-sound-opr7hidn8-dxchxys-projects.vercel.app','quantum-sound.vercel.app'],
+    origin: ['http://localhost:3000','https://quantum-sound-opr7hidn8-dxchxys-projects.vercel.app','https://quantum-sound.vercel.app'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
