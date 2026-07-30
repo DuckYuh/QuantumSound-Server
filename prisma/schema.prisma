@@ -42,12 +42,20 @@ enum Visibility {
   UNLISTED
 }
 
+enum AlbumStatus {
+  PROCESSING
+  READY
+  BLOCKED
+  DELETED
+}
+
 model User {
   id          String     @id @default(uuid())
   username    String     @unique
   displayName String
   email       String     @unique
   password    String
+  avatar      String?
   bio         String?
   country     String?
   role        UserRole   @default(USER)
@@ -58,7 +66,8 @@ model User {
   histories ListeningHistory[]
   searches  SearchHistory[]
   reports   Report[]
-
+  
+  albums    Album[]
   tracks    Track[]
   playlists Playlist[]
   followers Follow[]   @relation("UserFollowers")
@@ -66,19 +75,20 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  albums    Album[]
 }
 
 model Track {
   id          String      @id @default(uuid())
   title       String
   description String?
-  slug        String
+  slug        String      @unique
   audioUrl    String
   waveformUrl String?
   coverImage  String?
   playCount   Int         @default(0)
   likeCount   Int         @default(0)
+  trackNumber Int?
+  duration    Int
   visibility  Visibility
   status      TrackStatus @default(PROCESSING)
 
@@ -101,11 +111,14 @@ model Track {
 }
 
 model Album {
-  id          String    @id @default(uuid())
+  id          String      @id @default(uuid())
   title       String
-  type        AlbumType @default(SINGLE)
+  slug        String      @unique
+  type        AlbumType   @default(SINGLE)
   description String?
   coverImage  String?
+  status      AlbumStatus @default(PROCESSING)
+
   tracks      Track[]
 
   artist   User   @relation(fields: [artistId], references: [id])
@@ -148,13 +161,13 @@ model Follow {
 
 model Genre {
   id          String       @id @default(uuid())
-  name        String
-  slug        String
+  name        String       @unique
+  slug        String       @unique
   trackGenres TrackGenre[]
 }
 
 model TrackGenre {
-  id String @id @default(uuid())
+  id      String @id @default(uuid())
 
   track   Track  @relation(fields: [trackId], references: [id])
   trackId String
@@ -167,18 +180,19 @@ model TrackGenre {
 
 model Tag {
   id        String     @id @default(uuid())
-  name      String
+  name        String   @unique
+  slug        String   @unique
   trackTags TrackTag[]
 }
 
 model TrackTag {
-  id String @id @default(uuid())
+  id      String @id @default(uuid())
 
   track   Track  @relation(fields: [trackId], references: [id])
   trackId String
 
-  tag   Tag    @relation(fields: [tagId], references: [id])
-  tagId String
+  tag     Tag    @relation(fields: [tagId], references: [id])
+  tagId   String
 
   @@unique([trackId, tagId])
 }
