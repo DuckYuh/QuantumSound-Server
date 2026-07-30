@@ -4,7 +4,7 @@ import { UploadTrackDto } from './dto/UploadTrack.dto';
 import { UploadService } from '@/upload/upload.service';
 import slugify from "slugify";
 import { parseBuffer } from "music-metadata";
-import { AlbumType } from 'generated/prisma/client';
+import { AlbumType } from '@prisma/client';
 
 @Injectable()
 export class TracksService {

@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsString, IsOptional, IsNumber } from 'class-validator';
-import { Visibility } from 'generated/prisma/client';
+import { Visibility } from '@prisma/client';
 
 export class UploadTrackDto {
     @IsNotEmpty()
