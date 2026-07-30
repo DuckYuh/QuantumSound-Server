@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateUserDto } from './dto/updateUser.dto';
 import { ChangePasswordDto } from './dto/changePassword.dto';
-import { Prisma } from 'generated/prisma/client';
+import { Prisma } from '@prisma/client';
 import { UploadService } from '@/upload/upload.service';
 import bcrypt from "bcrypt";
 
