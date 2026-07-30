@@ -16,14 +16,13 @@ export class UploadService {
     },
   });
 
-  async uploadAudio(file: Express.Multer.File) {
+  async uploadFile(file: Express.Multer.File, folder: string) {
 
     if (!file)
       throw new BadRequestException('No file');
 
     const ext = file.originalname.split('.').pop();
-
-    const key = `tracks/${randomUUID()}.${ext}`;
+    const key = `${folder}/${randomUUID()}.${ext}`;
 
     await this.client.send(
       new PutObjectCommand({

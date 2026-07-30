@@ -1,4 +1,4 @@
-import { Controller, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Controller, Post, UploadedFile, UseInterceptors, Body } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { UploadService } from './upload.service';
@@ -18,7 +18,8 @@ export class UploadController {
   uploadFile(
     @UploadedFile()
     file: Express.Multer.File,
+    @Body('folder') folder: string,
   ) {
-    return this.uploadService.uploadAudio(file);
+    return this.uploadService.uploadFile(file, folder);
   }
 }
