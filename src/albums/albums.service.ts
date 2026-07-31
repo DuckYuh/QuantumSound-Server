@@ -56,6 +56,34 @@ export class AlbumsService {
             where: {
                 id: albumId,
             },
+            include: {
+                artist: {
+                    select: {
+                        id: true,
+                        username: true,
+                        displayName: true,
+                        avatar: true,
+                    },
+                },
+            },
+        });
+    }
+
+    async getAlbumBySlug(slug: string) {
+        return this.prisma.album.findUnique({
+            where: {
+                slug,
+            },
+            include: {
+                artist: {
+                    select: {
+                        id: true,
+                        username: true,
+                        displayName: true,
+                        avatar: true,
+                    },
+                },
+            },
         });
     }
 }
