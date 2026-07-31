@@ -28,4 +28,9 @@ export class AlbumsController {
     getAlbumById(@Param('id') albumId: string) {
         return this.albumsService.getAlbumById(albumId);
     }
+
+    @Get('slug/:slug')
+    getAlbumBySlug(@Param('slug') slug: string) {
+        return this.albumsService.getAlbumBySlug(slug);
+    }
 }

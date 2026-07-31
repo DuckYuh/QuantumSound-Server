@@ -113,6 +113,24 @@ export class TracksService {
             where: {
                 albumId: albumId,
             },
+            include: {
+                artist: {
+                    select: {
+                        id: true,
+                        username: true,
+                        displayName: true,
+                        avatar: true,
+                    },
+                },
+                album: {
+                    select: {
+                        id: true,
+                        title: true,
+                        type: true,
+                        coverImage: true,
+                    },
+                },
+            },
             orderBy: {
                 trackNumber: "asc",
             },
@@ -123,6 +141,24 @@ export class TracksService {
         return this.prisma.track.findUnique({
             where: {
                 id: trackId,
+            },
+            include: {
+                artist: {
+                    select: {
+                        id: true,
+                        username: true,
+                        displayName: true,
+                        avatar: true,
+                    },
+                },
+                album: {
+                    select: {
+                        id: true,
+                        title: true,
+                        type: true,
+                        coverImage: true,
+                    },
+                },
             },
         });
     }
