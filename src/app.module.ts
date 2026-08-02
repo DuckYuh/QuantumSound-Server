@@ -8,9 +8,11 @@ import { UploadModule } from './upload/upload.module';
 import { GenresModule } from './genres/genres.module';
 import { AlbumsModule } from './albums/albums.module';
 import { TracksModule } from './tracks/tracks.module';
+import { SearchModule } from './search/search.module';
+import { TagsModule } from './tags/tags.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, AuthModule, UploadModule, GenresModule, AlbumsModule, TracksModule],
+  imports: [PrismaModule, UsersModule, AuthModule, UploadModule, GenresModule, AlbumsModule, TracksModule, SearchModule, TagsModule],
   controllers: [AppController],
   providers: [AppService],
 })

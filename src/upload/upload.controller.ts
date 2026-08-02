@@ -6,7 +6,8 @@ import { UploadService } from './upload.service';
 @Controller('upload')
 export class UploadController {
   constructor(private uploadService: UploadService) {}
-@Post()
+  
+  @Post()
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
