@@ -1,7 +1,8 @@
-import { Controller, UseGuards, Req, Param, Body, Post, Get } from '@nestjs/common';
+import { Controller, UploadedFile, UseInterceptors, UseGuards, Req, Param, Body, Post, Get } from '@nestjs/common';
 import { AlbumsService } from './albums.service';
 import { CreateAlbumDto } from './dto/create-album.dto';
 import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('albums')
 export class AlbumsController {
@@ -9,13 +10,16 @@ export class AlbumsController {
 
     @Post('create')
     @UseGuards(JwtAuthGuard)
+    @UseInterceptors(FileInterceptor("coverImage"))
     create(
         @Req() req,
-        @Body() dto: CreateAlbumDto
+        @Body() dto: CreateAlbumDto,
+        @UploadedFile() coverFile?: Express.Multer.File
     ){
         return this.albumsService.create(
             req.user.id,
-            dto
+            dto,
+            coverFile
         );
     }
 
