@@ -17,4 +17,21 @@ export class GenresService {
         }
         });
     }
+
+    async findByQuery(query: string) {
+        return this.prisma.genre.findMany({
+            where: {
+                name: {
+                    contains: query,
+                    mode: 'insensitive'
+                }
+            },
+            select: {
+                id: true,
+                name: true,
+                slug: true,
+            },
+            take: 5,
+        });
+    }
 }

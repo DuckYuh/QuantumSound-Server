@@ -2,13 +2,14 @@ import { Injectable, ForbiddenException, BadRequestException } from '@nestjs/com
 import { PrismaService } from '@/prisma/prisma.service';
 import { UploadTrackDto } from './dto/UploadTrack.dto';
 import { UploadService } from '@/upload/upload.service';
+import { TagsService } from '@/tags/tags.service';
 import slugify from "slugify";
 import { parseBuffer } from "music-metadata";
 import { AlbumType } from '@prisma/client';
 
 @Injectable()
 export class TracksService {
-    constructor(private readonly prisma: PrismaService, private readonly UploadService: UploadService) {}
+    constructor(private readonly prisma: PrismaService, private readonly UploadService: UploadService, private readonly TagService: TagsService) {}
 
     private async generateUniqueSlug(title: string): Promise<string> {
         const baseSlug = slugify(title, {
@@ -25,6 +26,41 @@ export class TracksService {
         }
 
         return slug;
+    }
+
+    private async attachGenres(trackId: string, genres: string[]) {
+        for (const name of genres) {
+            const genre = await this.prisma.genre.findUnique({
+                where: { name },
+            });
+            if (!genre) {
+                throw new Error(`Genre not found: ${name}`);
+            }
+            await this.prisma.trackGenre.create({
+                data: {
+                    trackId,
+                    genreId: genre.id,
+                },
+            });
+        }
+    }
+
+    private async attachTags(trackId: string, tags: string[]) {
+        for (const name of tags) {
+            let tag = await this.prisma.tag.findUnique({
+                where: { name },
+            });
+            if (!tag) {
+                const newTag = await this.TagService.createTags(name);
+                tag = newTag;
+            }
+            await this.prisma.trackTag.create({
+                data: {
+                    trackId,
+                    tagId: tag.id,
+                },
+            });
+        }
     }
 
     async upload(userId:string, file:Express.Multer.File, dto:UploadTrackDto) {        
@@ -80,7 +116,7 @@ export class TracksService {
         const audioUrl = await this.UploadService.uploadFile(file, `tracks/${userId}/${album.slug}`);
 
         try {
-            return this.prisma.track.create({
+            const track = await this.prisma.track.create({
                 data: {
                     title: dto.title,
                     slug: slug,
@@ -93,13 +129,23 @@ export class TracksService {
                     albumId: dto.albumId,
                     artistId: userId
                 }
-            });
+            })
+            await this.attachGenres(track.id, dto.genres ?? []);
+            await this.attachTags(track.id, dto.tags ?? []);
+            return track;
         } catch(error) {
-            await this.prisma.album.delete({
-                where:{
-                    id: album.id
-                }
+            const trackCount = await this.prisma.track.count({
+                where: {
+                    albumId: album.id,
+                },
             });
+            if (trackCount === 0) {
+                await this.prisma.album.delete({
+                    where: {
+                        id: album.id,
+                    },
+                });
+            }
             throw error;
         }
     }
@@ -130,6 +176,16 @@ export class TracksService {
                         coverImage: true,
                     },
                 },
+                genres: {
+                    include: {
+                        genre: true,
+                    },
+                },
+                tags: {
+                    include: {
+                        tag: true,
+                    },
+                },
             },
             orderBy: {
                 trackNumber: "asc",
@@ -157,6 +213,16 @@ export class TracksService {
                         title: true,
                         type: true,
                         coverImage: true,
+                    },
+                },
+                genres: {
+                    include: {
+                        genre: true,
+                    },
+                },
+                tags: {
+                    include: {
+                        tag: true,
                     },
                 },
             },

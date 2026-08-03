@@ -1,11 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateAlbumDto } from './dto/create-album.dto';
 import slugify from "slugify";
+import { UploadService } from '@/upload/upload.service';
 
 @Injectable()
 export class AlbumsService {
-    constructor(private readonly prisma: PrismaService) {}
+    constructor(private readonly prisma: PrismaService, private readonly uploadService: UploadService) {}
 
     private async generateUniqueSlug(title: string): Promise<string> {
         const baseSlug = slugify(title, {
@@ -24,14 +25,19 @@ export class AlbumsService {
         return slug;
     }
 
-    async create(userId:string, data: CreateAlbumDto) {
+    async create(userId:string, data: CreateAlbumDto, coverFile?: Express.Multer.File) {
+        if (!coverFile) {
+            throw new BadRequestException("Cover file is required");
+        }
         const slug = await this.generateUniqueSlug(data.title);
+        const coverImageUrl = await this.uploadService.uploadFile(coverFile, `albums/${slug}/covers`);
         return this.prisma.album.create({
             data: {
                 title: data.title,
                 slug: slug,
                 type: data.type,
                 description: data.description,
+                coverImage: coverImageUrl.url,
                 artistId: userId
             }
         });

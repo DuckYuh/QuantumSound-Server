@@ -11,8 +11,4 @@ export class CreateAlbumDto {
     @IsString()
     @IsOptional()
     description?:string;
-
-    @IsOptional()
-    @IsString()
-    coverImage?: string;
 }
