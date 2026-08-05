@@ -10,9 +10,10 @@ import { AlbumsModule } from './albums/albums.module';
 import { TracksModule } from './tracks/tracks.module';
 import { SearchModule } from './search/search.module';
 import { TagsModule } from './tags/tags.module';
+import { PlaylistsModule } from './playlists/playlists.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, AuthModule, UploadModule, GenresModule, AlbumsModule, TracksModule, SearchModule, TagsModule],
+  imports: [PrismaModule, UsersModule, AuthModule, UploadModule, GenresModule, AlbumsModule, TracksModule, SearchModule, TagsModule, PlaylistsModule],
   controllers: [AppController],
   providers: [AppService],
 })
