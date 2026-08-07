@@ -1,5 +1,5 @@
 import { IsString, Length, IsOptional, IsEnum } from 'class-validator';
-import { Visibility } from 'generated/prisma/client';
+import { Visibility } from '@prisma/client';
 
 export class UpdatePlaylistDto {
     @IsOptional()
