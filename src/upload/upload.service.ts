@@ -41,9 +41,12 @@ export class UploadService {
   async deleteFile(fileUrl: string) {
     if (!fileUrl) return;
 
-    const key = fileUrl.split("/").pop();
+    const url = new URL(fileUrl);
+    const key = decodeURIComponent(url.pathname.slice(1));
 
     if (!key) return;
+
+    console.log(key);
 
     await this.client.send(
         new DeleteObjectCommand({
