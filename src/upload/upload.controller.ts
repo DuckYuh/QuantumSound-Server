@@ -1,4 +1,4 @@
-import { Controller, Post, UploadedFile, UseInterceptors, Body } from '@nestjs/common';
+import { Controller, Post, Delete, UploadedFile, UseInterceptors, Body } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { UploadService } from './upload.service';
@@ -22,5 +22,10 @@ export class UploadController {
     @Body('folder') folder: string,
   ) {
     return this.uploadService.uploadFile(file, folder);
+  }
+
+  @Delete()
+  deleteFile(@Body('fileUrl') fileUrl: string) {
+    return this.uploadService.deleteFile(fileUrl);
   }
 }

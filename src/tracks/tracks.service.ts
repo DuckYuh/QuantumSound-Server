@@ -1,15 +1,50 @@
 import { Injectable, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { UploadTrackDto } from './dto/UploadTrack.dto';
+import { UpdateTrackDto } from './dto/UpdateTrack.dto';
 import { UploadService } from '@/upload/upload.service';
-import { TagsService } from '@/tags/tags.service';
 import slugify from "slugify";
 import { parseBuffer } from "music-metadata";
 import { AlbumType } from '@prisma/client';
 
+type TrackRelationClient = {
+    genre: {
+        findUnique: (args: { where: { name: string } }) => Promise<{ id: string; name: string; slug: string } | null>;
+    };
+    trackGenre: {
+        create: (args: { data: { trackId: string; genreId: string } }) => Promise<unknown>;
+        deleteMany: (args: { where: { trackId: string } }) => Promise<unknown>;
+    };
+    tag: {
+        findUnique: (args: { where: { name?: string; slug?: string } }) => Promise<{ id: string; name: string; slug: string } | null>;
+        create: (args: { data: { name: string; slug: string } }) => Promise<{ id: string; name: string; slug: string }>;
+    };
+    trackTag: {
+        create: (args: { data: { trackId: string; tagId: string } }) => Promise<unknown>;
+        deleteMany: (args: { where: { trackId: string } }) => Promise<unknown>;
+    };
+};
+
 @Injectable()
 export class TracksService {
-    constructor(private readonly prisma: PrismaService, private readonly UploadService: UploadService, private readonly TagService: TagsService) {}
+    constructor(private readonly prisma: PrismaService, private readonly UploadService: UploadService) {}
+
+    private async generateUniqueTagSlug(client: TrackRelationClient, name: string): Promise<string> {
+        const baseSlug = slugify(name, {
+            lower: true,
+            strict: true,
+        });
+
+        let slug = baseSlug;
+        let counter = 2;
+
+        while (await client.tag.findUnique({ where: { slug } })) {
+            slug = `${baseSlug}-${counter}`;
+            counter++;
+        }
+
+        return slug;
+    }
 
     private async generateUniqueSlug(title: string): Promise<string> {
         const baseSlug = slugify(title, {
@@ -28,15 +63,15 @@ export class TracksService {
         return slug;
     }
 
-    private async attachGenres(trackId: string, genres: string[]) {
-        for (const name of genres) {
-            const genre = await this.prisma.genre.findUnique({
+    private async attachGenres(client: TrackRelationClient, trackId: string, genres: string[]) {
+        for (const name of [...new Set(genres)]) {
+            const genre = await client.genre.findUnique({
                 where: { name },
             });
             if (!genre) {
-                throw new Error(`Genre not found: ${name}`);
+                throw new BadRequestException(`Genre not found: ${name}`);
             }
-            await this.prisma.trackGenre.create({
+            await client.trackGenre.create({
                 data: {
                     trackId,
                     genreId: genre.id,
@@ -45,16 +80,20 @@ export class TracksService {
         }
     }
 
-    private async attachTags(trackId: string, tags: string[]) {
-        for (const name of tags) {
-            let tag = await this.prisma.tag.findUnique({
+    private async attachTags(client: TrackRelationClient, trackId: string, tags: string[]) {
+        for (const name of [...new Set(tags)]) {
+            let tag = await client.tag.findUnique({
                 where: { name },
             });
             if (!tag) {
-                const newTag = await this.TagService.createTags(name);
-                tag = newTag;
+                tag = await client.tag.create({
+                    data: {
+                        name,
+                        slug: await this.generateUniqueTagSlug(client, name),
+                    },
+                });
             }
-            await this.prisma.trackTag.create({
+            await client.trackTag.create({
                 data: {
                     trackId,
                     tagId: tag.id,
@@ -130,8 +169,8 @@ export class TracksService {
                     artistId: userId
                 }
             })
-            await this.attachGenres(track.id, dto.genres ?? []);
-            await this.attachTags(track.id, dto.tags ?? []);
+            await this.attachGenres(this.prisma, track.id, dto.genres ?? []);
+            await this.attachTags(this.prisma, track.id, dto.tags ?? []);
             return track;
         } catch(error) {
             const trackCount = await this.prisma.track.count({
@@ -148,6 +187,134 @@ export class TracksService {
             }
             throw error;
         }
+    }
+
+    async deleteTrack(userId: string, trackId: string) {
+        const track = await this.prisma.track.findUnique({
+            where: {
+                id: trackId,
+            },
+        });
+
+        if (!track) {
+            throw new BadRequestException("Track not found");
+        }
+
+        if (track.artistId !== userId) {
+            throw new ForbiddenException("You are not allowed to delete this track");
+        }
+
+        if (track.audioUrl) {
+            await this.UploadService.deleteFile(track.audioUrl);
+        }
+
+        const trackGenres = await this.prisma.trackGenre.findMany({
+            where: {
+                trackId: trackId,
+            },
+        });
+        if (trackGenres.length > 0) {
+            await this.prisma.trackGenre.deleteMany({
+                where: {
+                    trackId: trackId,
+                },
+            });
+        }
+
+        const trackTags = await this.prisma.trackTag.findMany({
+            where: {
+                trackId: trackId,
+            },
+        });
+        if (trackTags.length > 0) {
+            await this.prisma.trackTag.deleteMany({
+                where: {
+                    trackId: trackId,
+                },
+            });
+        }
+
+        const trackInPlaylists = await this.prisma.playlistTrack.findMany({
+            where: {
+                trackId: trackId,
+            },
+        });
+        if (trackInPlaylists.length > 0) {
+            await this.prisma.playlistTrack.deleteMany({
+                where: {
+                    trackId: trackId,
+                },
+            });
+        }
+
+        await this.prisma.track.delete({
+            where: {
+                id: trackId,
+            },
+        });
+    }
+
+    async updateTrack(userId: string, trackId: string, dto: UpdateTrackDto, coverFile?: Express.Multer.File) {
+        const track = await this.prisma.track.findUnique({
+            where: {
+                id: trackId,
+            },
+        });
+        if (!track) {
+            throw new BadRequestException("Track not found");
+        }
+        if (track.artistId !== userId) {
+            throw new ForbiddenException("You are not allowed to update this track");
+        }
+        let newSlug = track.slug;
+        if (dto.title && dto.title !== track.title) {
+            const slug = await this.generateUniqueSlug(dto.title);
+            newSlug = slug;
+        }
+        let coverImage = track.coverImage;
+        if (coverFile) {
+            if (!coverFile.mimetype.startsWith("image/")) {
+                throw new BadRequestException("Invalid cover image file");
+            }
+            if (track.coverImage) {
+                await this.UploadService.deleteFile(track.coverImage);
+            }
+            const coverImageUrl = await this.UploadService.uploadFile(coverFile, `tracks/${userId}/${track.slug}/cover`);
+            coverImage = coverImageUrl.url;
+        }
+        return this.prisma.$transaction(async (tx) => {
+            const updatedTrack = await tx.track.update({
+                where: { id: trackId },
+                data: {
+                    title: dto.title,
+                    slug: newSlug,
+                    description: dto.description,
+                    coverImage: coverImage,
+                    visibility: dto.visibility,
+                    status: dto.status,
+                },
+            });
+
+            // update genres
+            if (dto.genres) {
+                await tx.trackGenre.deleteMany({
+                    where: { trackId },
+                });
+
+                await this.attachGenres(tx, trackId, dto.genres);
+            }
+
+            // update tags
+            if (dto.tags) {
+                await tx.trackTag.deleteMany({
+                    where: { trackId },
+                });
+
+                await this.attachTags(tx, trackId, dto.tags);
+            }
+
+            return updatedTrack;
+        });
     }
 
     async findAll() {
@@ -213,6 +380,7 @@ export class TracksService {
                         title: true,
                         type: true,
                         coverImage: true,
+                        slug: true,
                     },
                 },
                 genres: {

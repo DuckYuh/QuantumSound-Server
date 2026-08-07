@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
 
 @Injectable()
@@ -17,7 +17,6 @@ export class UploadService {
   });
 
   async uploadFile(file: Express.Multer.File, folder: string) {
-
     if (!file)
       throw new BadRequestException('No file');
 
@@ -37,5 +36,20 @@ export class UploadService {
       url: `${process.env.R2_PUBLIC_URL}/${key}`,
       key,
     };
+  }
+
+  async deleteFile(fileUrl: string) {
+    if (!fileUrl) return;
+
+    const key = fileUrl.split("/").pop();
+
+    if (!key) return;
+
+    await this.client.send(
+        new DeleteObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: key,
+        }),
+    );
   }
 }

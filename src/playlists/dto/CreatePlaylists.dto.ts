@@ -1,4 +1,5 @@
 import { IsString, Length, IsOptional, IsEnum } from 'class-validator';
+import { Visibility } from '@prisma/client';
 
 export class CreatePlaylistDto {
     @IsString()
@@ -10,5 +11,6 @@ export class CreatePlaylistDto {
     description?: string;
 
     @IsString()
-    visibility: 'PUBLIC' | 'PRIVATE' | 'UNLISTED';
+    @IsEnum(Visibility)
+    visibility: Visibility;
 }
