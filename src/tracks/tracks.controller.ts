@@ -42,6 +42,25 @@ export class TracksController {
         return this.tracksService.updateTrack(req.user.id, trackId, dto, coverFile);
     }
 
+    @Post('listen/:id')
+    @UseGuards(JwtAuthGuard)
+    recordListen(
+        @Param('id') trackId: string,
+        @Req() req,
+    ) {
+        return this.tracksService.recordListen(
+            req.user.id,
+            trackId,
+        );
+    }
+
+    @Get('popular/:id')
+    getPopularTracks(
+        @Param('id') userId: string
+    ) {
+        return this.tracksService.getPopularTracks(userId);
+    }
+
     @Get('albums/:albumId')
     findAlbumTracks(@Param('albumId') albumId: string) {
         return this.tracksService.findAlbumTracks(albumId);

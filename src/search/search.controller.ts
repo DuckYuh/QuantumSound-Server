@@ -8,7 +8,8 @@ export class SearchController {
     @Get()
     search(
         @Query("query") query: string,
+        @Query('limit') limit?: string,
     ) {
-        return this.searchService.search(query);
+        return this.searchService.search(query, limit ? Number(limit) : 3);
     }
 }

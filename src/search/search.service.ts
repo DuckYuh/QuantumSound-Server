@@ -5,66 +5,96 @@ import { PrismaService } from '@/prisma/prisma.service';
 export class SearchService {
     constructor(private prisma: PrismaService) {}
 
-    async search(query: string) {
-        const tracks = await this.prisma.track.findMany({
-            where: {
-                title: {
-                    contains: query,
-                    mode: "insensitive",
-                },
-            },
-            include: {
-                artist: {
-                    select: {
-                        id: true,
-                        username: true,
-                        displayName: true,
-                        avatar: true,
+    async search(query: string, limit = 3) {
+        const q = query.trim();
+
+        if (!q) {
+            return {
+                tracks: [],
+                albums: [],
+                users: [],
+            };
+        }
+
+        const safeLimit = Math.min(Math.max(limit, 1), 20);
+
+        const [tracks, albums, users] = await Promise.all([
+            this.prisma.track.findMany({
+                where: {
+                    title: {
+                        contains: q,
+                        mode: 'insensitive',
                     },
                 },
-                album: {
-                    select: {
-                        id: true,
-                        title: true,
-                        slug: true,
-                        coverImage: true,
+                include: {
+                    artist: {
+                        select: {
+                            id: true,
+                            username: true,
+                            displayName: true,
+                            avatar: true,
+                        },
+                    },
+                    album: {
+                        select: {
+                            id: true,
+                            title: true,
+                            slug: true,
+                            coverImage: true,
+                        },
                     },
                 },
-            },
-            take: 3,
-        });
+                take: safeLimit,
+            }),
 
-        const albums = await this.prisma.album.findMany({
-            where: {
-                title: {
-                    contains: query,
-                    mode: "insensitive",
-                },
-            },
-            include: {
-                artist: {
-                    select: {
-                        id: true,
-                        username: true,
-                        displayName: true,
-                        avatar: true,
+            this.prisma.album.findMany({
+                where: {
+                    title: {
+                        contains: q,
+                        mode: 'insensitive',
                     },
                 },
-            },
-            take: 3,
-        });
-
-        const users = await this.prisma.user.findMany({
-            where: {
-                displayName: {
-                    contains: query,
-                    mode: "insensitive",
+                include: {
+                    artist: {
+                        select: {
+                            id: true,
+                            username: true,
+                            displayName: true,
+                            avatar: true,
+                        },
+                    },
                 },
-            },
-            take: 3,
-        });
+                take: safeLimit,
+            }),
 
-         return {
+            this.prisma.user.findMany({
+                where: {
+                    OR: [
+                        {
+                            displayName: {
+                                contains: q,
+                                mode: 'insensitive',
+                            },
+                        },
+                        {
+                            username: {
+                                contains: q,
+                                mode: 'insensitive',
+                            },
+                        },
+                    ],
+                },
+                select: {
+                    id: true,
+                    username: true,
+                    displayName: true,
+                    avatar: true,
+                },
+                take: safeLimit,
+            }),
+        ]);
+
+        return {
             tracks,
             albums,
             users,
