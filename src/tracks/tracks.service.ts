@@ -317,6 +317,46 @@ export class TracksService {
         });
     }
 
+    async recordListen(userId: string, trackId: string) {
+        return this.prisma.$transaction(async (tx) => {
+            await tx.listeningHistory.create({
+                data: {
+                    userId,
+                    trackId,
+                },
+            });
+
+            return tx.track.update({
+                where: {
+                    id: trackId,
+                },
+                data: {
+                    playCount: {
+                        increment: 1,
+                    },
+                },
+            });
+        });
+    }
+
+    async getPopularTracks(userId: string, limit = 10) {
+        const safeLimit = Math.min(Math.max(limit, 1), 100);
+
+        return this.prisma.track.findMany({
+            where: {
+                artistId: userId,
+            },
+            orderBy: {
+                playCount: 'desc',
+            },
+            take: safeLimit,
+            include: {
+                artist: true,
+                album: true,
+            },
+        });
+    }
+
     async findAll() {
         return this.prisma.track.findMany();
     }
