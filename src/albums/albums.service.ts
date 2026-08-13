@@ -204,4 +204,17 @@ export class AlbumsService {
             },
         });
     }
+
+    async getNewReleases(limit = 10) {
+        return this.prisma.album.findMany({
+            orderBy: {
+                createdAt: "desc",
+            },
+            take: limit,
+            include: {
+                artist: true,
+                tracks: true,
+            },
+        });
+    }
 }

@@ -547,4 +547,34 @@ export class TracksService {
             },
         });
     }
+
+    async getMostPopularTracks(limit = 50) {
+        const take = Math.min(limit, 50);
+
+        return this.prisma.track.findMany({
+            orderBy: {
+                playCount: "desc",
+            },
+            take,
+            include: {
+                artist: true,
+                album: true,
+            },
+        });
+    }
+
+    async getMostLikedTracks(limit = 50) {
+        const take = Math.min(limit, 50);
+
+        return this.prisma.track.findMany({
+            orderBy: {
+                likeCount: "desc",
+            },
+            take,
+            include: {
+                artist: true,
+                album: true,
+            },
+        });
+    }
 }

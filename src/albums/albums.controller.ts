@@ -1,4 +1,4 @@
-import { Controller, UploadedFile, UseInterceptors, UseGuards, Req, Param, Body, Post, Get, Delete, Patch } from '@nestjs/common';
+import { Controller, UploadedFile, UseInterceptors, UseGuards, Req, Param, Body, Post, Get, Delete, Patch, Query } from '@nestjs/common';
 import { AlbumsService } from './albums.service';
 import { CreateAlbumDto } from './dto/create-album.dto';
 import { ReorderAlbumTracksDto } from './dto/reorder-album-tracks.dto';
@@ -66,13 +66,22 @@ export class AlbumsController {
         return this.albumsService.findUserAlbums(username);
     }
 
-    @Get(':id')
-    getAlbumById(@Param('id') albumId: string) {
-        return this.albumsService.getAlbumById(albumId);
-    }
-
     @Get('slug/:slug')
     getAlbumBySlug(@Param('slug') slug: string) {
         return this.albumsService.getAlbumBySlug(slug);
+    }
+
+    @Get('new-releases')
+    getNewReleases(
+        @Query('limit') limit?: string,
+    ) {
+        return this.albumsService.getNewReleases(
+            Number(limit) || 10
+        );
+    }
+    
+    @Get(':id')
+    getAlbumById(@Param('id') albumId: string) {
+        return this.albumsService.getAlbumById(albumId);
     }
 }
