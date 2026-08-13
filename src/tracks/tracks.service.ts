@@ -357,6 +357,117 @@ export class TracksService {
         });
     }
 
+    async likeTrack(userId: string, trackId: string) {
+        return this.prisma.$transaction(async (tx) => {
+            const existingLike = await tx.trackLike.findUnique({
+                where: {
+                    userId_trackId: {
+                        userId,
+                        trackId,
+                    },
+                },
+            });
+
+            if (existingLike) {
+                return existingLike;
+            }
+
+            await tx.trackLike.create({
+                data: {
+                    userId,
+                    trackId,
+                },
+            });
+
+            await tx.track.update({
+                where: {
+                    id: trackId,
+                },
+                data: {
+                    likeCount: {
+                        increment: 1,
+                    },
+                },
+            });
+
+            return {
+                liked: true,
+            };
+        });
+    }
+
+    async unlikeTrack(userId: string, trackId: string) {
+        return this.prisma.$transaction(async (tx) => {
+            const existingLike = await tx.trackLike.findUnique({
+                where: {
+                    userId_trackId: {
+                        userId,
+                        trackId,
+                    },
+                },
+            });
+
+            if (!existingLike) {
+                return;
+            }
+
+            await tx.trackLike.delete({
+                where: {
+                    userId_trackId: {
+                        userId,
+                        trackId,
+                    },
+                },
+            });
+
+            await tx.track.update({
+                where: {
+                    id: trackId,
+                },
+                data: {
+                    likeCount: {
+                        decrement: 1,
+                    },
+                },
+            });
+
+            return {
+                liked: false,
+            };
+        });
+    }
+
+    async getIsLiked(userId: string, trackId: string) {
+        const like = await this.prisma.trackLike.findUnique({
+            where: {
+                userId_trackId: {
+                    userId,
+                    trackId,
+                },
+            },
+        });
+        return !!like;
+    }
+
+    async getTrackComments(trackId: string) {
+        return this.prisma.comment.findMany({
+            where: {
+                trackId,
+            },
+            include: {
+                user: true,
+            },
+        });
+    }
+
+    async getTrackCommentsCount(trackId: string) {
+        return this.prisma.comment.count({
+            where: {
+                trackId,
+            },
+        });
+    }
+
     async findAll() {
         return this.prisma.track.findMany();
     }

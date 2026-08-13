@@ -61,6 +61,53 @@ export class TracksController {
         return this.tracksService.getPopularTracks(userId);
     }
 
+    @Post('like/:id')
+    @UseGuards(JwtAuthGuard)
+    likeTrack(
+        @Param('id') trackId: string,
+        @Req() req,
+    ) {
+        return this.tracksService.likeTrack(
+            req.user.id,
+            trackId,
+        );
+    }
+
+    @Delete('unlike/:id')
+    @UseGuards(JwtAuthGuard)
+    unlikeTrack(
+        @Param('id') trackId: string,
+        @Req() req,
+    ) {
+        return this.tracksService.unlikeTrack(
+            req.user.id,
+            trackId,
+        );
+    }
+
+    @Get('likes/:id')
+    @UseGuards(JwtAuthGuard)
+    getIsLiked(
+        @Param('id') trackId: string,
+        @Req() req,
+    ) {
+        return this.tracksService.getIsLiked(req.user.id, trackId);
+    }
+
+    @Get('comments/:id')
+    getTrackComments(
+        @Param('id') trackId: string,
+    ) {
+        return this.tracksService.getTrackComments(trackId);
+    }
+
+    @Get('comments/count/:id')
+    getTrackCommentsCount(
+        @Param('id') trackId: string,
+    ) {
+        return this.tracksService.getTrackCommentsCount(trackId);
+    }
+
     @Get('albums/:albumId')
     findAlbumTracks(@Param('albumId') albumId: string) {
         return this.tracksService.findAlbumTracks(albumId);
