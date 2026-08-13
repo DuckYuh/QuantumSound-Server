@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Delete, UseGuards, UseInterceptors, UploadedFile, Body, Req, Param, Patch } from '@nestjs/common';
+import { Controller, Post, Get, Delete, UseGuards, UseInterceptors, UploadedFile, Body, Req, Param, Query, Patch } from '@nestjs/common';
 import { TracksService } from './tracks.service';
 import { UploadTrackDto } from './dto/UploadTrack.dto';
 import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
@@ -111,6 +111,24 @@ export class TracksController {
     @Get('albums/:albumId')
     findAlbumTracks(@Param('albumId') albumId: string) {
         return this.tracksService.findAlbumTracks(albumId);
+    }
+
+    @Get('most-popular')
+    getMostPopularTracks(
+        @Query('limit') limit?: string,
+    ) {
+        return this.tracksService.getMostPopularTracks(
+            Number(limit) || 50,
+        );
+    }
+
+    @Get('most-liked')
+    getMostLikedTracks(
+        @Query('limit') limit?: string,
+    ) {
+        return this.tracksService.getMostLikedTracks(
+            Number(limit) || 50,
+        );
     }
 
     @Get(':id')
