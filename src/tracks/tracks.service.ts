@@ -345,6 +345,9 @@ export class TracksService {
         return this.prisma.track.findMany({
             where: {
                 artistId: userId,
+                album: {
+                    status: "RELEASED",
+                },
             },
             orderBy: {
                 playCount: 'desc',
@@ -552,6 +555,11 @@ export class TracksService {
         const take = Math.min(limit, 50);
 
         return this.prisma.track.findMany({
+            where: {
+                album: {
+                    status: "RELEASED",
+                },
+            },
             orderBy: {
                 playCount: "desc",
             },
@@ -567,6 +575,11 @@ export class TracksService {
         const take = Math.min(limit, 50);
 
         return this.prisma.track.findMany({
+            where: {
+                album: {
+                    status: "RELEASED",
+                },
+            },
             orderBy: {
                 likeCount: "desc",
             },
@@ -574,6 +587,18 @@ export class TracksService {
             include: {
                 artist: true,
                 album: true,
+            },
+        });
+    }
+
+    async getLikedTracks(userId: string) {
+        return this.prisma.trackLike.findMany({
+            where: {
+                userId,
+            },
+            include: {
+                user: true,
+                track: true,
             },
         });
     }

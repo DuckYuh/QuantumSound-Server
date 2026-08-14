@@ -25,6 +25,9 @@ export class SearchService {
                         contains: q,
                         mode: 'insensitive',
                     },
+                    album: {
+                        status: "RELEASED",
+                    },
                 },
                 include: {
                     artist: {
@@ -53,6 +56,7 @@ export class SearchService {
                         contains: q,
                         mode: 'insensitive',
                     },
+                    status: "RELEASED",
                 },
                 include: {
                     artist: {

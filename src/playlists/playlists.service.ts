@@ -151,11 +151,24 @@ export class PlaylistsService {
     async getUserPlaylists(username: string) {
         return this.prisma.playlist.findMany({
             where: { 
+                visibility: "PUBLIC",
                 owner: {
                     username: username
                 }
             },
             include: { 
+                tracks: true,
+                owner: true
+            }
+        });
+    }
+
+    async getMyPlaylists(userId: string) {
+        return this.prisma.playlist.findMany({
+            where: {
+                ownerId: userId
+            },
+            include: {
                 tracks: true,
                 owner: true
             }
