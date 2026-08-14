@@ -1,6 +1,7 @@
 import { Controller, UploadedFile, UseInterceptors, UseGuards, Req, Param, Body, Post, Get, Delete, Patch, Query } from '@nestjs/common';
 import { AlbumsService } from './albums.service';
 import { CreateAlbumDto } from './dto/create-album.dto';
+import { UpdateAlbumDto } from './dto/updateAlbum.dto';
 import { ReorderAlbumTracksDto } from './dto/reorder-album-tracks.dto';
 import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -30,7 +31,7 @@ export class AlbumsController {
     update(
         @Req() req,
         @Param('id') albumId: string,
-        @Body() dto: CreateAlbumDto,
+        @Body() dto: UpdateAlbumDto,
         @UploadedFile() coverFile?: Express.Multer.File
     ){
         return this.albumsService.updateAlbum(
@@ -64,6 +65,12 @@ export class AlbumsController {
     @Get('users/:username')
     findUserAlbums(@Param('username') username: string) {
         return this.albumsService.findUserAlbums(username);
+    }
+
+    @Get('my-albums')
+    @UseGuards(JwtAuthGuard)
+    findMyAlbums(@Req() req) {
+        return this.albumsService.findMyAlbums(req.user.id);
     }
 
     @Get('slug/:slug')

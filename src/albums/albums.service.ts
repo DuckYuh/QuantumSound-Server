@@ -170,9 +170,22 @@ export class AlbumsService {
     async findUserAlbums(username: string) {
         return this.prisma.album.findMany({
             where: {
+                status: "RELEASED",
                 artist: {
                     username: username
                 }
+            },
+            include: {
+                artist: true,
+                tracks: true,
+            }
+        });
+    }
+
+    async findMyAlbums(userId: string) {
+        return this.prisma.album.findMany({
+            where: {
+                artistId: userId
             },
             include: {
                 artist: true,
@@ -207,6 +220,9 @@ export class AlbumsService {
 
     async getNewReleases(limit = 10) {
         return this.prisma.album.findMany({
+            where: {
+                status: "RELEASED"
+            },
             orderBy: {
                 createdAt: "desc",
             },

@@ -68,6 +68,12 @@ export class PlaylistsController {
         return this.playlistsService.GetAll();
     }
 
+    @Get('my-playlists')
+    @UseGuards(JwtAuthGuard)
+    async getMyPlaylists(@Req() req) {
+        return this.playlistsService.getMyPlaylists(req.user.id);
+    }
+
     @Get(':id')
     async getPlaylist(@Req() req) {
         return this.playlistsService.getPlaylistById(req.params.id);

@@ -25,9 +25,8 @@ enum UserStatus {
 
 enum TrackStatus {
   PROCESSING
-  READY
+  RELEASED
   BLOCKED
-  DELETED
 }
 
 enum AlbumType {
@@ -44,9 +43,8 @@ enum Visibility {
 
 enum AlbumStatus {
   PROCESSING
-  READY
+  RELEASED
   BLOCKED
-  DELETED
 }
 
 model User {

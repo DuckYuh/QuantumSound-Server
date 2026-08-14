@@ -131,6 +131,12 @@ export class TracksController {
         );
     }
 
+    @Get('liked')
+    @UseGuards(JwtAuthGuard)
+    getLikedTracks(@Req() req) {
+        return this.tracksService.getLikedTracks(req.user.id);
+    }
+
     @Get(':id')
     GetTrackById(@Param('id') trackId: string) {
         return this.tracksService.GetTrackById(trackId);
