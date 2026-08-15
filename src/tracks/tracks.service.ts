@@ -598,7 +598,12 @@ export class TracksService {
             },
             include: {
                 user: true,
-                track: true,
+                track: {
+                    include: {
+                        album: true,
+                        artist: true,
+                    }
+                },
             },
         });
     }
