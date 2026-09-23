@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Delete, UseGuards, UseInterceptors, UploadedFile, Body, Req, Param, Query, Patch } from '@nestjs/common';
 import { TracksService } from './tracks.service';
 import { UploadTrackDto } from './dto/UploadTrack.dto';
-import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
+import { JwtAuthGuard } from '@/auth/guard/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UpdateTrackDto } from './dto/UpdateTrack.dto';
 

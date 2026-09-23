@@ -1,8 +1,8 @@
-import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, BadRequestException, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateUserDto } from './dto/updateUser.dto';
 import { ChangePasswordDto } from './dto/changePassword.dto';
-import { Prisma } from '@prisma/client';
+import { Prisma, UserStatus, UserRole } from '@prisma/client';
 import { UploadService } from '@/upload/upload.service';
 import bcrypt from "bcrypt";
 
@@ -16,7 +16,12 @@ export class UsersService {
 
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({
-      where: { email },
+      where: { 
+        email,
+        status: {
+          not: UserStatus.DELETED,
+        },
+      },
     });
   }
 
@@ -135,6 +140,116 @@ export class UsersService {
   async createUser(data: { username: string; displayName: string; email: string; password: string }) {
     return this.prisma.user.create({
       data,
+    });
+  }
+
+  async findByIdForAdmin(id: string) {
+    return this.prisma.user.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            username: true,
+            displayName: true,
+            email: true,
+            avatar: true,
+            bio: true,
+            country: true,
+            role: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+        },
+    });
+  }
+
+  async updateUserStatus(id: string, status: UserStatus) {
+    return this.prisma.user.update({
+        where: { id },
+        data: { status },
+        select: {
+            id: true,
+            username: true,
+            displayName: true,
+            email: true,
+            avatar: true,
+            role: true,
+            status: true,
+            updatedAt: true,
+        },
+    });
+  }
+
+  async deleteUser(id: string) {
+    return this.prisma.user.update({
+        where: { id },
+        data: {
+            status: "DELETED",
+        },
+        select: {
+            id: true,
+            username: true,
+            displayName: true,
+            email: true,
+            avatar: true,
+            role: true,
+            status: true,
+            updatedAt: true,
+        },
+    });
+  }
+
+  async restoreUser(id: string) {
+    return this.prisma.user.update({
+        where: { id },
+        data: {
+            status: UserStatus.ACTIVE,
+        },
+        select: {
+            id: true,
+            username: true,
+            displayName: true,
+            email: true,
+            avatar: true,
+            role: true,
+            status: true,
+            updatedAt: true,
+        },
+    });
+  }
+
+  async updateUserRole(id: string, role: UserRole) {
+    const user = await this.prisma.user.findUnique({
+        where: { id },
+        select: {
+            status: true,
+        },
+    });
+
+    if (!user) {
+        throw new NotFoundException("User not found");
+    }
+
+    if (user.status === UserStatus.DELETED) {
+        throw new BadRequestException(
+            "Cannot change role of a deleted user",
+        );
+    }
+
+    return this.prisma.user.update({
+        where: { id },
+        data: {
+            role,
+        },
+        select: {
+            id: true,
+            username: true,
+            displayName: true,
+            email: true,
+            avatar: true,
+            role: true,
+            status: true,
+            updatedAt: true,
+        },
     });
   }
 }

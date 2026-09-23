@@ -1,11 +1,12 @@
-import { Injectable, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, ForbiddenException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { UploadTrackDto } from './dto/UploadTrack.dto';
 import { UpdateTrackDto } from './dto/UpdateTrack.dto';
 import { UploadService } from '@/upload/upload.service';
 import slugify from "slugify";
 import { parseBuffer } from "music-metadata";
-import { AlbumType } from '@prisma/client';
+import { AlbumType, Prisma, TrackStatus } from '@prisma/client';
+import { AdminTrackQueryDto } from './dto/admin-track-query.dto';
 
 type TrackRelationClient = {
     genre: {
@@ -189,7 +190,7 @@ export class TracksService {
         }
     }
 
-    async deleteTrack(userId: string, trackId: string) {
+    private async hardDeleteTrack(trackId: string) {
         const track = await this.prisma.track.findUnique({
             where: {
                 id: trackId,
@@ -197,61 +198,56 @@ export class TracksService {
         });
 
         if (!track) {
-            throw new BadRequestException("Track not found");
+            throw new NotFoundException("Track not found");
+        }
+
+        await this.prisma.$transaction(async (tx) => {
+            const playlistTracks = await tx.playlistTrack.findMany({
+                where: { trackId },
+                select: { playlistId: true },
+            });
+
+            await tx.comment.deleteMany({ where: { trackId } });
+            await tx.trackLike.deleteMany({ where: { trackId } });
+            await tx.listeningHistory.deleteMany({ where: { trackId } });
+            await tx.report.deleteMany({ where: { trackId } });
+            await tx.trackGenre.deleteMany({ where: { trackId } });
+            await tx.trackTag.deleteMany({ where: { trackId } });
+            await tx.playlistTrack.deleteMany({ where: { trackId } });
+
+            for (const { playlistId } of playlistTracks) {
+                await tx.playlist.update({
+                    where: { id: playlistId },
+                    data: { trackCount: { decrement: 1 } },
+                });
+            }
+
+            await tx.track.delete({ where: { id: trackId } });
+        });
+
+        await Promise.all([
+            track.audioUrl ? this.UploadService.deleteFile(track.audioUrl) : Promise.resolve(),
+            track.coverImage ? this.UploadService.deleteFile(track.coverImage) : Promise.resolve(),
+        ]);
+
+        return track;
+    }
+
+    async deleteTrack(userId: string, trackId: string) {
+        const track = await this.prisma.track.findUnique({
+            where: { id: trackId },
+            select: { artistId: true },
+        });
+
+        if (!track) {
+            throw new NotFoundException("Track not found");
         }
 
         if (track.artistId !== userId) {
             throw new ForbiddenException("You are not allowed to delete this track");
         }
 
-        if (track.audioUrl) {
-            await this.UploadService.deleteFile(track.audioUrl);
-        }
-
-        const trackGenres = await this.prisma.trackGenre.findMany({
-            where: {
-                trackId: trackId,
-            },
-        });
-        if (trackGenres.length > 0) {
-            await this.prisma.trackGenre.deleteMany({
-                where: {
-                    trackId: trackId,
-                },
-            });
-        }
-
-        const trackTags = await this.prisma.trackTag.findMany({
-            where: {
-                trackId: trackId,
-            },
-        });
-        if (trackTags.length > 0) {
-            await this.prisma.trackTag.deleteMany({
-                where: {
-                    trackId: trackId,
-                },
-            });
-        }
-
-        const trackInPlaylists = await this.prisma.playlistTrack.findMany({
-            where: {
-                trackId: trackId,
-            },
-        });
-        if (trackInPlaylists.length > 0) {
-            await this.prisma.playlistTrack.deleteMany({
-                where: {
-                    trackId: trackId,
-                },
-            });
-        }
-
-        await this.prisma.track.delete({
-            where: {
-                id: trackId,
-            },
-        });
+        return this.hardDeleteTrack(trackId);
     }
 
     async updateTrack(userId: string, trackId: string, dto: UpdateTrackDto, coverFile?: Express.Multer.File) {
@@ -473,6 +469,80 @@ export class TracksService {
 
     async findAll() {
         return this.prisma.track.findMany();
+    }
+
+    async findAllForAdmin(query: AdminTrackQueryDto) {
+        const page = query.page ?? 1;
+        const limit = query.limit ?? 20;
+        const search = query.search?.trim();
+        const where: Prisma.TrackWhereInput = {
+            ...(query.status ? { status: query.status } : {}),
+            ...(query.artistId ? { artistId: query.artistId } : {}),
+            ...(search
+                ? {
+                    OR: [
+                        { title: { contains: search, mode: 'insensitive' } },
+                        { slug: { contains: search, mode: 'insensitive' } },
+                        { artist: { username: { contains: search, mode: 'insensitive' } } },
+                    ],
+                }
+                : {}),
+        };
+
+        const [items, total] = await this.prisma.$transaction([
+            this.prisma.track.findMany({
+                where,
+                include: {
+                    artist: {
+                        select: { id: true, username: true, displayName: true, avatar: true },
+                    },
+                    album: {
+                        select: { id: true, title: true, slug: true, coverImage: true },
+                    },
+                },
+                orderBy: { createdAt: 'desc' },
+                skip: (page - 1) * limit,
+                take: limit,
+            }),
+            this.prisma.track.count({ where }),
+        ]);
+
+        return {
+            items,
+            meta: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
+    }
+
+    async findByIdForAdmin(trackId: string) {
+        const track = await this.GetTrackById(trackId);
+        if (!track) {
+            throw new NotFoundException('Track not found');
+        }
+        return track;
+    }
+
+    async updateTrackStatus(trackId: string, status: TrackStatus) {
+        try {
+            return await this.prisma.track.update({
+                where: { id: trackId },
+                data: { status },
+                include: { artist: true, album: true },
+            });
+        } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+                throw new NotFoundException('Track not found');
+            }
+            throw error;
+        }
+    }
+
+    async deleteTrackForAdmin(trackId: string) {
+        return this.hardDeleteTrack(trackId);
     }
 
     async findAlbumTracks(albumId: string) {

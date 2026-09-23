@@ -2,7 +2,7 @@ import { Controller, UploadedFile, UseInterceptors, UseGuards, Get, Post, Delete
 import { PlaylistsService } from './playlists.service';
 import { CreatePlaylistDto } from './dto/CreatePlaylists.dto';
 import { AddTrackDto } from './dto/AddTrackDto.dto';
-import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
+import { JwtAuthGuard } from '@/auth/guard/jwt-auth.guard';
 import { UpdatePlaylistDto } from './dto/UpdatePlaylist.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 

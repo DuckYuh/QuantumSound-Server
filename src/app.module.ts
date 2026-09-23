@@ -12,9 +12,10 @@ import { SearchModule } from './search/search.module';
 import { TagsModule } from './tags/tags.module';
 import { PlaylistsModule } from './playlists/playlists.module';
 import { CommentsModule } from './comments/comments.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, AuthModule, UploadModule, GenresModule, AlbumsModule, TracksModule, SearchModule, TagsModule, PlaylistsModule, CommentsModule],
+  imports: [PrismaModule, UsersModule, AuthModule, UploadModule, GenresModule, AlbumsModule, TracksModule, SearchModule, TagsModule, PlaylistsModule, CommentsModule, AdminModule],
   controllers: [AppController],
   providers: [AppService],
 })
