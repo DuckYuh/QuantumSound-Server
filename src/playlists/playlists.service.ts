@@ -129,7 +129,7 @@ export class PlaylistsService {
             throw new BadRequestException('Track not found in playlist');
         }
 
-        this.prisma.playlistTrack.delete({
+        await this.prisma.playlistTrack.delete({
             where: {
                 playlistId_trackId: {
                     playlistId: playlistId,

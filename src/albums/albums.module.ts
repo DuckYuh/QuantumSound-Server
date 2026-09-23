@@ -8,6 +8,7 @@ import { TracksModule } from '@/tracks/tracks.module';
 @Module({
   imports: [PrismaModule, UploadModule, TracksModule],
   controllers: [AlbumsController],
-  providers: [AlbumsService]
+  providers: [AlbumsService],
+  exports: [AlbumsService],
 })
 export class AlbumsModule {}

@@ -1,10 +1,13 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { CreateAlbumDto } from './dto/create-album.dto';
 import { UpdateAlbumDto } from './dto/updateAlbum.dto';
 import slugify from "slugify";
 import { UploadService } from '@/upload/upload.service';
 import { TracksService } from '@/tracks/tracks.service';
+import { AdminAlbumQueryDto, AdminAlbumStatus } from './dto/admin-album-query.dto';
+import { AlbumType } from '@prisma/client';
 
 @Injectable()
 export class AlbumsService {
@@ -164,6 +167,97 @@ export class AlbumsService {
                 artist: true,
                 tracks: true,
             }
+        });
+    }
+
+    async findAllForAdmin(query: AdminAlbumQueryDto) {
+        const page = query.page ?? 1;
+        const limit = query.limit ?? 20;
+        const search = query.search?.trim();
+        const where: Prisma.AlbumWhereInput = {
+            ...(query.status ? { status: query.status } : {}),
+            ...(query.type ? { type: query.type as AlbumType } : {}),
+            ...(search
+                ? {
+                    OR: [
+                        { title: { contains: search, mode: 'insensitive' } },
+                        { slug: { contains: search, mode: 'insensitive' } },
+                        { artist: { username: { contains: search, mode: 'insensitive' } } },
+                    ],
+                }
+                : {}),
+        };
+
+        const [items, total] = await this.prisma.$transaction([
+            this.prisma.album.findMany({
+                where,
+                include: {
+                    artist: {
+                        select: { id: true, username: true, displayName: true, avatar: true },
+                    },
+                    tracks: true,
+                },
+                orderBy: { createdAt: 'desc' },
+                skip: (page - 1) * limit,
+                take: limit,
+            }),
+            this.prisma.album.count({ where }),
+        ]);
+
+        return {
+            items,
+            meta: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
+    }
+
+    async findByIdForAdmin(albumId: string) {
+        const album = await this.getAlbumById(albumId);
+        if (!album) {
+            throw new NotFoundException('Album not found');
+        }
+        return album;
+    }
+
+    async updateAlbumStatus(albumId: string, status: AdminAlbumStatus) {
+        try {
+            return await this.prisma.album.update({
+                where: { id: albumId },
+                data: { status },
+                include: { artist: true, tracks: true },
+            });
+        } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+                throw new NotFoundException('Album not found');
+            }
+            throw error;
+        }
+    }
+
+    async deleteAlbumForAdmin(albumId: string) {
+        const album = await this.prisma.album.findUnique({
+            where: { id: albumId },
+            include: { tracks: true },
+        });
+
+        if (!album) {
+            throw new NotFoundException('Album not found');
+        }
+
+        for (const track of album.tracks) {
+            await this.tracksService.deleteTrackForAdmin(track.id);
+        }
+
+        if (album.coverImage) {
+            await this.uploadService.deleteFile(album.coverImage);
+        }
+
+        return this.prisma.album.delete({
+            where: { id: albumId },
         });
     }
 
