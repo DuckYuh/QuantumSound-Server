@@ -47,6 +47,11 @@ enum AlbumStatus {
   BLOCKED
 }
 
+enum AppPlatform {
+  DESKTOP
+  MOBILE
+}
+
 model User {
   id          String     @id @default(uuid())
   username    String     @unique
@@ -268,4 +273,17 @@ model Report {
   userId String
 
   createdAt DateTime @default(now())
+}
+
+model AppRelease {
+  id           String        @id @default(uuid())
+  platform     AppPlatform   @unique
+  version      String
+  fileName     String
+  fileUrl      String
+  r2Key        String
+  fileSize     BigInt?
+  releaseNotes String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }

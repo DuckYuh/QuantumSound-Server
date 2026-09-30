@@ -13,9 +13,10 @@ import { TagsModule } from './tags/tags.module';
 import { PlaylistsModule } from './playlists/playlists.module';
 import { CommentsModule } from './comments/comments.module';
 import { AdminModule } from './admin/admin.module';
+import { AppReleaseModule } from './app-release/app-release.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, AuthModule, UploadModule, GenresModule, AlbumsModule, TracksModule, SearchModule, TagsModule, PlaylistsModule, CommentsModule, AdminModule],
+  imports: [PrismaModule, UsersModule, AuthModule, UploadModule, GenresModule, AlbumsModule, TracksModule, SearchModule, TagsModule, PlaylistsModule, CommentsModule, AdminModule, AppReleaseModule],
   controllers: [AppController],
   providers: [AppService],
 })

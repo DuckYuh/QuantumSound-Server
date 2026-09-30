@@ -5,6 +5,12 @@ import { ValidationPipe } from '@nestjs/common/pipes/validation.pipe';
 
 dotenv.config();
 
+Object.defineProperty(BigInt.prototype, 'toJSON', {
+  value: function (this: bigint) {
+    return Number(this);
+  },
+});
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(
