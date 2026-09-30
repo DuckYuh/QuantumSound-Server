@@ -1,13 +1,16 @@
-import { BadRequestException, Controller, UseGuards, Get, Post, Patch, Delete, Param, Body, Req, Query } from '@nestjs/common';
+import { UploadedFile ,UseInterceptors, BadRequestException, Controller, UseGuards, Get, Post, Patch, Put, Delete, Param, Body, Req, Query } from '@nestjs/common';
 import { JwtAuthGuard } from "@/auth/guard/jwt-auth.guard";
 import { RolesGuard } from "@/auth/guard/roles.guard";
 import { Roles } from "@/auth/decorator/roles.decorator";
 import { UserRole } from "@prisma/client";
+import { FileInterceptor } from '@nestjs/platform-express';
+import { CreateAppReleaseDto } from "@/app-release/dto/create-app-release.dto";
 import { UsersService } from "@/users/users.service";
 import { AlbumsService } from "@/albums/albums.service";
 import { TracksService } from "@/tracks/tracks.service";
 import { GenresService } from "@/genres/genres.service";
 import { TagsService } from "@/tags/tags.service";
+import { AppReleaseService } from "@/app-release/app-release.service";
 import { AdminUpdateUserStatusDto } from "@/users/dto/admin-update-user-status.dto";
 import { AdminUpdateUserRoleDto } from "@/users/dto/admin-update-user-role.dto";
 import { AdminTrackQueryDto } from "@/tracks/dto/admin-track-query.dto";
@@ -18,12 +21,13 @@ import { CreateGenreDto } from "@/genres/dto/create-genre.dto";
 import { UpdateGenreDto } from "@/genres/dto/update-genre.dto";
 import { CreateTagDto } from "@/tags/dto/create-tag.dto";
 import { UpdateTagDto } from "@/tags/dto/update-tag.dto";
+import { AppPlatform } from "@prisma/client";
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class AdminController {
-    constructor(private readonly usersService: UsersService, private readonly albumsService: AlbumsService, private readonly tracksService: TracksService, private readonly genresService: GenresService, private readonly tagsService: TagsService) {}
+    constructor(private readonly usersService: UsersService, private readonly albumsService: AlbumsService, private readonly tracksService: TracksService, private readonly genresService: GenresService, private readonly tagsService: TagsService, private readonly appReleaseService: AppReleaseService) {}
 
     @Get('users')
     async findAll() {
@@ -191,4 +195,29 @@ export class AdminController {
     async deleteTag(@Param('id') id: string) {
         return this.tagsService.deleteForAdmin(id);
     }
+
+  @Put('app-releases/:platform')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @UseInterceptors(FileInterceptor('file'))
+  upsert(
+    @Param('platform') platform: AppPlatform,
+    @Body() dto: CreateAppReleaseDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.appReleaseService.upsert(
+      platform,
+      dto,
+      file,
+    );
+  }
+
+  @Delete('app-releases/:platform')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  remove(
+    @Param('platform') platform: AppPlatform,
+  ) {
+    return this.appReleaseService.remove(platform);
+  }
 }
