@@ -5,6 +5,8 @@ import { JwtModule } from '@nestjs/jwt/dist/jwt.module';
 import { JwtStrategy } from './jwt.strategy';
 import { PassportModule } from '@nestjs/passport';
 import { UsersModule } from '@/users/users.module';
+import { PrismaService } from '@/prisma/prisma.service';
+import { RefreshTokenService } from './refresh-token.service';
 
 @Module({
   imports: [
@@ -15,12 +17,12 @@ import { UsersModule } from '@/users/users.module';
     JwtModule.register({
       secret: process.env.JWT_SECRET,
       signOptions: {
-        expiresIn: '1d',
+        expiresIn: '15m',
       },
     })
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [PassportModule, JwtModule],
+  providers: [AuthService, JwtStrategy, PrismaService, RefreshTokenService],
+  exports: [PassportModule, JwtModule, RefreshTokenService],
 })
 export class AuthModule {}

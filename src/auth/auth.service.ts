@@ -4,13 +4,45 @@ import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import bcrypt from 'bcrypt';
+import { RefreshTokenService } from './refresh-token.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwt: JwtService,
+    private refreshTokenService: RefreshTokenService,
   ) {}
+
+  private async createAuthResponse(user: {
+    id: string;
+    username: string;
+    displayName: string;
+    email: string;
+    role: string;
+  }) {
+    const access_token = this.jwt.sign({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    const { refreshToken, sessionId } =
+      await this.refreshTokenService.createSession(user.id);
+
+    return {
+      access_token,
+      refresh_token: refreshToken,
+      session_id: sessionId,
+      user: {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        email: user.email,
+        role: user.role,
+      },
+    };
+  }
 
   async register(dto: RegisterDto) {
     const existed = await this.usersService.findByEmail(dto.email);
@@ -28,22 +60,7 @@ export class AuthService {
       password: hashed,
     });
 
-    const token = this.jwt.sign({
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    });
-
-    return {
-      access_token: token,
-      user: {
-        id: user.id,
-        username: user.username,
-        displayName: user.displayName,
-        email: user.email,
-        role: user.role,
-      },
-    };
+    return this.createAuthResponse(user);
   }
 
   async login(dto: LoginDto) {
@@ -62,14 +79,32 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const token = this.jwt.sign({
+    return this.createAuthResponse(user);
+  }
+
+  async refresh(rawRefreshToken: string) {
+    const {
+      userId,
+      refreshToken,
+      sessionId,
+    } = await this.refreshTokenService.rotateToken(rawRefreshToken);
+
+    const user = await this.usersService.findById(userId);
+
+    if (!user || user.status !== 'ACTIVE') {
+      throw new UnauthorizedException('User is not available');
+    }
+
+    const access_token = this.jwt.sign({
       sub: user.id,
       email: user.email,
       role: user.role,
     });
 
     return {
-      access_token: token,
+      access_token,
+      refresh_token: refreshToken,
+      session_id: sessionId,
       user: {
         id: user.id,
         username: user.username,
@@ -78,5 +113,11 @@ export class AuthService {
         role: user.role,
       },
     };
+  }
+
+  async logout(rawRefreshToken: string): Promise<{ message: string }> {
+    await this.refreshTokenService.revokeToken(rawRefreshToken);
+
+    return { message: 'Logged out successfully' };
   }
 }

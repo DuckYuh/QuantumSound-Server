@@ -69,12 +69,14 @@ model User {
   histories ListeningHistory[]
   searches  SearchHistory[]
   reports   Report[]
-  
+
   albums    Album[]
   tracks    Track[]
   playlists Playlist[]
   followers Follow[]   @relation("UserFollowers")
   following Follow[]   @relation("UserFollowing")
+
+  refreshSessions RefreshSession[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -122,7 +124,7 @@ model Album {
   coverImage  String?
   status      AlbumStatus @default(PROCESSING)
 
-  tracks      Track[]
+  tracks Track[]
 
   artist   User   @relation(fields: [artistId], references: [id])
   artistId String
@@ -170,7 +172,7 @@ model Genre {
 }
 
 model TrackGenre {
-  id      String @id @default(uuid())
+  id String @id @default(uuid())
 
   track   Track  @relation(fields: [trackId], references: [id])
   trackId String
@@ -183,19 +185,19 @@ model TrackGenre {
 
 model Tag {
   id        String     @id @default(uuid())
-  name        String   @unique
-  slug        String   @unique
+  name      String     @unique
+  slug      String     @unique
   trackTags TrackTag[]
 }
 
 model TrackTag {
-  id      String @id @default(uuid())
+  id String @id @default(uuid())
 
   track   Track  @relation(fields: [trackId], references: [id])
   trackId String
 
-  tag     Tag    @relation(fields: [tagId], references: [id])
-  tagId   String
+  tag   Tag    @relation(fields: [tagId], references: [id])
+  tagId String
 
   @@unique([trackId, tagId])
 }
@@ -276,14 +278,35 @@ model Report {
 }
 
 model AppRelease {
-  id           String        @id @default(uuid())
-  platform     AppPlatform   @unique
+  id           String      @id @default(uuid())
+  platform     AppPlatform @unique
   version      String
   fileName     String
   fileUrl      String
   r2Key        String
   fileSize     BigInt?
   releaseNotes String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model RefreshSession {
+  id        String @id @default(uuid())
+  tokenHash String @unique
+  userId    String
+
+  // Thông tin thiết bị, phục vụ quản lý session sau này
+  deviceName String?
+
+  expiresAt  DateTime
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
